@@ -52,18 +52,21 @@ Write `~/.config/ccstatusline/settings.json` with the layout matching the chosen
 | Widget | Type | Color | Purpose |
 |--------|------|-------|---------|
 | Model | `model` | `cyan` | Current model name |
-| (separator) | `separator` | | |
+| (separator) | `separator` | | flex space |
 | Thinking Effort | `thinking-effort` | `brightYellow` | Effort level |
-| (separator) | `separator` | | |
+| (separator) | `separator` | | flex space |
 | Context Bar | `context-bar` | `green` | Visual progress bar with percentage |
-| (separator) | `separator` | | |
+| (separator) | `separator` | | flex space |
 
-**Line 2 — Session info:**
+**Line 2 — Session & Usage (uses custom-text for fixed `|` separators):**
 | Widget | Type | Color | Purpose |
 |--------|------|-------|---------|
 | Session Name | `session-name` | `brightCyan` | Session name (via /rename, empty if not set) |
-| (separator) | `separator` | | |
-| Reset Timer | `reset-timer` | `brightBlue` | Team Plan 5hr usage limit reset countdown |
+| Pipe | `custom-text` (" \| ") | `brightBlack` | Fixed separator |
+| Usage Label | `custom-text` ("Usage: ") | `brightBlue` | Custom label for usage |
+| Usage Value | `session-usage` (rawValue) | `brightBlue` | Team Plan usage percentage |
+| Pipe | `custom-text` (" \| ") | `brightBlack` | Fixed separator |
+| Reset Timer | `reset-timer` | `brightBlue` | 5hr usage limit reset countdown |
 
 **Line 3 — Git info (widgets use `hideNoGit: true` to hide in non-git dirs):**
 | Widget | Type | Color | Purpose |
@@ -71,7 +74,7 @@ Write `~/.config/ccstatusline/settings.json` with the layout matching the chosen
 | Branch | `git-branch` | `brightBlue` | Current branch |
 | Worktree | `worktree-branch` | (default) | Worktree branch (hideNoGit) |
 | Changes | `git-changes` | `magenta` | Lines added/removed e.g. (+266,-67) |
-| (separator) | `separator` | | |
+| (separator) | `separator` | | flex space |
 | Ahead/Behind | `git-ahead-behind` | `brightCyan` | Commits vs remote (hideNoGit) |
 | PR | `git-pr` | `brightMagenta` | Associated PR link (hideNoGit) |
 
@@ -91,7 +94,10 @@ Full JSON config:
     ],
     [
       {"id": "20", "type": "session-name", "color": "brightCyan"},
-      {"id": "21", "type": "separator"},
+      {"id": "25", "type": "custom-text", "customText": " | ", "color": "brightBlack"},
+      {"id": "27", "type": "custom-text", "customText": "Usage: ", "color": "brightBlue"},
+      {"id": "24", "type": "session-usage", "color": "brightBlue", "rawValue": true},
+      {"id": "26", "type": "custom-text", "customText": " | ", "color": "brightBlack"},
       {"id": "23", "type": "reset-timer", "color": "brightBlue"}
     ],
     [
