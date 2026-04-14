@@ -24,11 +24,16 @@ One-command setup for [ccstatusline](https://github.com/sirmalloc/ccstatusline) 
 
 ## Installation
 
-Copy the skill folder to your local Claude skills directory:
-
 ```bash
+# 1. Clone the repo
+git clone https://github.com/UnicodeDigital/claude-skills.git /tmp/claude-skills
+
+# 2. Copy skills to your local Claude skills directory
 mkdir -p ~/.claude/skills
-cp -r setup-statusline ~/.claude/skills/
+cp -r /tmp/claude-skills/setup-statusline ~/.claude/skills/
+
+# 3. Clean up
+rm -rf /tmp/claude-skills
 ```
 
 Then run `/setup-statusline` in Claude Code. No restart needed.
