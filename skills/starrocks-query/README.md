@@ -12,10 +12,7 @@
 ### Claude Code（终端）
 
 ```bash
-claude mcp add starrocks \
-  --transport http \
-  --url http://162.128.159.166:9130/mcp \
-  --header "Authorization: Bearer <你的-token>"
+claude mcp add --transport http starrocks http://162.128.159.166:9130/mcp --header "Authorization: Bearer <你的-token>"
 ```
 
 添加后 Claude Code 下次启动会自动连接。
