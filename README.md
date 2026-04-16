@@ -7,6 +7,7 @@ UnicodeDigital team shared skills for [Claude Code](https://claude.ai/code).
 | Skill | Description |
 |-------|-------------|
 | [/setup-statusline](skills/setup-statusline/) | Configure ccstatusline with team-standard defaults |
+| [/starrocks-query](skills/starrocks-query/) | 自然语言查询公司 StarRocks 数据仓库（需配套 MCP Server） |
 
 ## Installation
 
