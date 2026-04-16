@@ -17,28 +17,12 @@ claude mcp add --transport http starrocks http://162.128.159.166:9130/mcp --head
 
 添加后 Claude Code 下次启动会自动连接。
 
-### Claude Desktop
-
-打开 Claude Desktop → Settings → Developer → Edit Config，添加starrocks的 mcpServers：
-
-```json
-{ 
-  "preferences": {...},
-  "mcpServers": {
-    "starrocks": {
-      "transport": {
-        "type": "streamable_http",
-        "url": "http://162.128.159.166:9130/mcp",
-        "headers": {
-          "Authorization": "Bearer <你的-token>"
-        }
-      }
-    }
-  }
-}
+```shell
+# 测试联通性
+claude mcp list
+# 删除mcp
+claude mcp remove starrocks
 ```
-
-把 `<你的-token>` 替换为实际 token，保存后重启 Claude Desktop。
 
 ---
 
