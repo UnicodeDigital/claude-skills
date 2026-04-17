@@ -107,6 +107,7 @@ iceberg 外表必须三段式 `iceberg.udata.<table>`。
 ## 错误处理
 - `error: rejected` → SQL 被安全拦截，看 detail 修正后重试
 - `error: db_error` → 字段名错、symbol 大小写错、时间戳单位错；修正一次再跑，**同一错误重试不超过 2 次**
+- `db_error: timeout` → 查询超时（MCP 默认限制 30s）；缩小时间范围、加过滤条件，或改用预聚合表；**不要原样重试**
 - 0 行结果 → 提醒用户数据缺失或筛选过严
 - 金额/统计类结果异常时主动质疑，不要直接展示
 - ❌ Iceberg 外表漏 `iceberg` 前缀（写成 `udata.xxx`，正确是 `iceberg.udata.xxx`）
