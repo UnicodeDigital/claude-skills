@@ -57,7 +57,7 @@ iceberg 外表必须三段式 `iceberg.udata.<table>`。
 **只在真的取不到数的情况下**反问，能合理推断就直接用并在结果里说明假设：
 - **时间范围**：用户没说就按"最近 1 天 / 最近 3 天"等合理默认，并在 SQL 注释里写清楚
 - **交易所/市场**：默认binance linear,如用户只说"BTC"且没指明 → 默认 `btc-usdt` + `binance_linear`（合约），并告知；明确要现货/其他交易所再切
-- **symbol范围**：高频表数据量较大,避免全symbol夸多天查询。
+- **symbol范围**：高频表数据量较大,避免全symbol跨多天查询。
 
 ### 5. 生成 SQL —— 硬规则
 
@@ -74,7 +74,7 @@ iceberg 外表必须三段式 `iceberg.udata.<table>`。
 1. **分区下推**：有 `dt` 字段的表必须带 `dt` 范围过滤
 2. **LIMIT**：默认末尾加 `LIMIT 100`。如果忘了加 LIMIT，server 会自动注入。
 3. **默认按业务时间戳倒序**：明细查询默认 `ORDER BY <业务时间戳> DESC`（参照上面时间字段速查）；聚合查询按聚合维度排序。让用户最先看到最新数据。
-4. **高频表时间窗口上限 1 天**（`iceberg.udata.*`），超出必须用户二次确认。
+4. **高频表时间窗口尽量限制 1 天内**（`iceberg.udata.*`），超出必须用户二次确认。
 5. **Symbol 规范**：内部统一小写中划线 `btc-usdt`；部分表可能同时有 `symbol`（原始如 `BTCUSDT`）和 `symbol_us`（内部 `btc-usdt`）两套字段，JOIN / WHERE 要对齐。不确定时 `describe_table` 看 sample。
 6. **JOIN 建议**：尽量避免超过 3 张表的多表关联；高频 tick 表（trade、book_ticker、order_book 等）尽量不直接互相 JOIN，先在子查询/CTE 里聚合或过滤再关联。
 
@@ -109,6 +109,6 @@ iceberg 外表必须三段式 `iceberg.udata.<table>`。
 - `db_error: timeout` → 查询超时（MCP 默认限制 30s）；缩小时间范围、加过滤条件，或改用预聚合表；**不要原样重试**
 - 0 行结果 → 提醒用户数据缺失或筛选过严
 - 金额/统计类结果异常时主动质疑，不要直接展示
-- ❌ Iceberg 外表漏 `iceberg` 前缀（写成 `udata.xxx`，正确是 `iceberg.udata.xxx`）
-- ❌ 内部表写 `iceberg.lfdata.xxx` —— Iceberg catalog 下没有 lfdata 库
-- ❌ 忘加时间范围过滤 —— 全表扫
+- Iceberg 外表漏 `iceberg` 前缀（写成 `udata.xxx`，正确是 `iceberg.udata.xxx`）
+- 内部表写 `iceberg.lfdata.xxx` —— Iceberg catalog 下没有 lfdata 库
+- 忘加时间范围过滤 —— 全表扫
