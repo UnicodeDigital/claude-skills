@@ -48,27 +48,37 @@ Write `~/.config/ccstatusline/settings.json` with the layout matching the chosen
 
 #### --full (default): Three-line layout (optimized for 80-col terminals and Team Plan)
 
-**Line 1 — Model & Context:**
+Display format example:
+
+```
+Model: Opus 4.7 (1M context) | Effort: high | Ctx: [██░░░░░░░░░░░░░░] 105k/1000k (11%)
+Session: my-session | Usage: 9.0% | Reset: 3hr 8m
+⎇ dev_mengjia (+266,-67) | (no PR)
+```
+
+**Line 1 — Model / Effort / Context** (labels shortened via `rawValue` + `custom-text`):
 | Widget | Type | Color | Purpose |
 |--------|------|-------|---------|
 | Model | `model` | `cyan` | Current model name |
 | (separator) | `separator` | | flex space |
-| Thinking Effort | `thinking-effort` | `brightYellow` | Effort level |
+| Effort Label | `custom-text` ("Effort: ") | `brightYellow` | Short label |
+| Effort Value | `thinking-effort` (rawValue) | `brightYellow` | Effort level |
 | (separator) | `separator` | | flex space |
-| Context Bar | `context-bar` | `green` | Visual progress bar with percentage |
+| Ctx Label | `custom-text` ("Ctx: ") | `green` | Short label |
+| Ctx Value | `context-bar` (rawValue) | `green` | Visual progress bar + percentage |
 | (separator) | `separator` | | flex space |
 
-**Line 2 — Session & Usage (uses custom-text for fixed `|` separators):**
+**Line 2 — Session / Usage / Reset** (uses custom-text for fixed `|` separators):
 | Widget | Type | Color | Purpose |
 |--------|------|-------|---------|
 | Session Name | `session-name` | `brightCyan` | Session name (via /rename, empty if not set) |
 | Pipe | `custom-text` (" \| ") | `brightBlack` | Fixed separator |
-| Usage Label | `custom-text` ("Usage: ") | `brightBlue` | Custom label for usage |
+| Usage Label | `custom-text` ("Usage: ") | `brightBlue` | Custom label |
 | Usage Value | `session-usage` (rawValue) | `brightBlue` | Team Plan usage percentage |
 | Pipe | `custom-text` (" \| ") | `brightBlack` | Fixed separator |
 | Reset Timer | `reset-timer` | `brightBlue` | 5hr usage limit reset countdown |
 
-**Line 3 — Git info (widgets use `hideNoGit: true` to hide in non-git dirs):**
+**Line 3 — Git info** (widgets use `hideNoGit: true` to hide in non-git dirs):
 | Widget | Type | Color | Purpose |
 |--------|------|-------|---------|
 | Branch | `git-branch` | `brightBlue` | Current branch |
@@ -87,9 +97,11 @@ Full JSON config:
     [
       {"id": "1", "type": "model", "color": "cyan"},
       {"id": "16", "type": "separator"},
-      {"id": "10", "type": "thinking-effort", "color": "brightYellow"},
+      {"id": "29", "type": "custom-text", "customText": "Effort: ", "color": "brightYellow"},
+      {"id": "10", "type": "thinking-effort", "color": "brightYellow", "rawValue": true},
       {"id": "4", "type": "separator"},
-      {"id": "3", "type": "context-bar", "color": "green"},
+      {"id": "28", "type": "custom-text", "customText": "Ctx: ", "color": "green"},
+      {"id": "3", "type": "context-bar", "color": "green", "rawValue": true},
       {"id": "6", "type": "separator"}
     ],
     [
@@ -162,3 +174,7 @@ Full JSON config:
 ### Step 5: Confirm to the user
 
 Print a summary of what was configured and which mode was applied. Remind them that the status line will refresh automatically, or they can restart Claude Code to see changes immediately.
+
+### Known limitations
+
+- `thinking-effort` widget in ccstatusline only recognizes `low/medium/high/max` and falls back to `medium` for `xhigh` (Opus 4.7 exclusive). Upstream issue; monitor https://github.com/sirmalloc/ccstatusline.
