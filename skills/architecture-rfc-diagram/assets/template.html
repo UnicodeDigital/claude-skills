@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code — Repo Architecture Diagram Skill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#111;
+    --ink-2:#333;
+    --ink-3:#666;
+    --paper:#fafaf7;
+    --paper-2:#f1efe8;
+    --accent:#c93a2a;
+    --green:#2a7a3a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:"Inter","Noto Sans SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body{
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.035) 1px, transparent 1px);
+    background-size:32px 32px;
+  }
+  .page{max-width:1120px;margin:0 auto;padding:56px 64px 96px}
+  header.masthead{
+    border-top:3px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:18px 0 14px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    margin-bottom:36px;
+  }
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  h1{font-family:"Noto Sans SC","Inter",sans-serif;font-weight:700;font-size:34px;line-height:1.15;margin:6px 0 0;letter-spacing:-.01em}
+  .meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right;line-height:1.6;white-space:nowrap}
+  .meta b{color:var(--ink);font-weight:600}
+  .lede{border-left:2px solid var(--ink);padding:4px 0 4px 18px;margin:0 0 44px;font-size:14.5px;line-height:1.7;color:var(--ink-2);max-width:820px}
+  code{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-2);padding:1px 5px;border:1px solid #e3e0d6;border-radius:2px}
+  .block{margin:0 0 56px}
+  .block-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;background:var(--ink);color:var(--paper);padding:3px 8px 2px;border-radius:1px;white-space:nowrap;flex-shrink:0}
+  h2{font-family:"Noto Sans SC","Inter",sans-serif;font-weight:600;font-size:19px;margin:0;letter-spacing:-.005em}
+  .sub{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3)}
+  .diagram{border:1px solid var(--ink);background:#fff;padding:22px 18px 14px;margin:0 0 14px;position:relative;overflow-x:auto}
+  .diagram::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--ink)}
+  .corner{position:absolute;top:6px;right:10px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.1em}
+  .notes{list-style:none;padding:0;margin:0;font-size:13px;line-height:1.75;color:var(--ink-2)}
+  .notes li{padding-left:22px;position:relative;margin:0 0 4px}
+  .notes li::before{content:"";position:absolute;left:2px;top:11px;width:10px;height:1px;background:var(--ink)}
+  .accent{color:var(--accent);font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{border:1px solid var(--ink);background:#fff;padding:16px 18px;min-height:128px}
+  .card h3{font-size:14px;margin:0 0 8px;font-family:"JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+  .card p{font-size:13px;line-height:1.7;color:var(--ink-2);margin:0}
+  table.matrix{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--ink)}
+  table.matrix th,table.matrix td{border-bottom:1px solid #ddd;border-right:1px solid #eee;padding:10px 12px;text-align:left;vertical-align:top}
+  table.matrix th{background:var(--ink);color:var(--paper);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;font-weight:500}
+  table.matrix tr:last-child td{border-bottom:none}
+  table.matrix td:last-child,table.matrix th:last-child{border-right:none}
+  td.proc{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600}
+  td.warn{color:var(--accent)}
+  td.ok::before{content:"✓ ";color:var(--green);font-weight:700}
+  td.no::before{content:"✗ ";color:var(--accent);font-weight:700}
+  .tradeoffs{counter-reset:item;border:1px solid var(--ink);background:#fff;padding:0;margin:0;list-style:none}
+  .tradeoffs li{counter-increment:item;padding:14px 18px 14px 56px;border-bottom:1px solid #e6e3da;position:relative;font-size:13.5px;line-height:1.65;color:var(--ink-2)}
+  .tradeoffs li:last-child{border-bottom:none}
+  .tradeoffs li::before{content:"0" counter(item);position:absolute;left:18px;top:14px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink);font-weight:600;letter-spacing:.05em;border:1px solid var(--ink);padding:2px 6px}
+  footer{margin-top:64px;padding-top:14px;border-top:1px solid var(--ink);display:flex;justify-content:space-between;align-items:center;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
+  .mermaid svg{font-family:"Inter","Noto Sans SC",sans-serif !important}
+  .mermaid .nodeLabel{font-size:13px !important}
+  .mermaid .edgeLabel{font-family:"JetBrains Mono",monospace !important;font-size:11px !important;background:#fff !important}
+  .mermaid .edgeLabel rect{fill:#fff !important}
+  .mermaid .cluster rect{fill:#fafaf7 !important;stroke:#111 !important;stroke-width:1px !important}
+  .mermaid .cluster .cluster-label .nodeLabel{font-family:"JetBrains Mono",monospace !important;font-size:11px !important;letter-spacing:.08em;text-transform:uppercase}
+  .mermaid .actor{fill:#fff !important;stroke:#111 !important}
+  .mermaid .messageText{font-family:"JetBrains Mono",monospace !important;font-size:11px !important}
+  .mermaid .noteText{font-family:"Inter","Noto Sans SC",sans-serif !important;font-size:11px !important}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">ARCH DIAGRAM · claude-code skill draft · v0</div>
+      <h1>Claude Code — 新项目代码架构图生成链路</h1>
+    </div>
+    <div class="meta">
+      <b>OWNER</b> dev-infra<br>
+      <b>STATUS</b> TEMPLATE<br>
+      <b>OUTPUT</b> HTML + Mermaid
+    </div>
+  </header>
+
+  <p class="lede">
+    目标不是让 LLM “猜架构”,而是把 <b>repo scan → 证据提取 → 架构归纳 → Mermaid 渲染 → 人工复核</b> 做成固定流水线。
+    <code>filesystem MCP</code> 负责读代码,<code>git/github MCP</code> 负责补上下文,<code>architecture-rfc-diagram skill</code> 负责把结果稳定输出成本文档风格。
+  </p>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">A · TOPOLOGY</span>
+      <h2>Claude Code + MCP + Skill 工作拓扑</h2>
+      <span class="sub">flowchart LR</span>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. A</span>
+      <pre class="mermaid">
+flowchart LR
+  classDef base fill:#111,stroke:#111,color:#fff,stroke-width:2px;
+  classDef tool fill:#fff,stroke:#111,color:#111;
+  classDef opt fill:#fff,stroke:#444,stroke-dasharray:5 4,color:#111;
+  classDef bus fill:#f4f2eb,stroke:#111,stroke-dasharray:2 2,color:#111;
+  classDef risk fill:#fff,stroke:#c93a2a,color:#111,stroke-width:2px;
+
+  DEV["Developer<br/><i>new repo / unknown codebase</i>"]:::tool
+
+  subgraph C0["L0 · ENTRY"]
+    CC["<b>Claude Code</b><br/>interactive agent<br/>plans · reads · edits"]:::base
+  end
+
+  subgraph C1["L1 · CONTEXT SOURCES"]
+    FS["filesystem MCP<br/>read files · tree · grep"]:::tool
+    GIT["git / github MCP<br/>history · PR · issue"]:::tool
+    DOC["docs / README / ADR<br/>optional evidence"]:::opt
+  end
+
+  subgraph C2["L2 · SKILL PIPELINE"]
+    SK["<b>architecture-rfc-diagram skill</b><br/>scan rules · evidence map<br/>Mermaid templates"]:::base
+    CACHE[("evidence index<br/>symbols · modules · flows")]:::bus
+  end
+
+  subgraph C3["L3 · OUTPUTS"]
+    MMD["Mermaid diagrams<br/>topology · interface · sequence"]:::tool
+    HTML["<b>single-file HTML RFC</b><br/>black-white line-art style"]:::risk
+    REVIEW["human review<br/>fix names · annotate risks"]:::opt
+  end
+
+  DEV --> CC
+  CC --> FS
+  CC --> GIT
+  CC -. optional .-> DOC
+
+  FS == "source facts" ==> SK
+  GIT == "change intent" ==> SK
+  DOC -. "design intent" .-> SK
+
+  SK --> CACHE
+  CACHE --> MMD
+  MMD ==> HTML
+  HTML --> REVIEW
+      </pre>
+    </div>
+    <ul class="notes">
+      <li><b>Skill 是风格和流程的核心</b>: MCP 只解决“能读到什么”,skill 决定“读完后怎么归纳、怎么画、怎么写成 RFC”。</li>
+      <li><span class="accent">红框输出</span> 是最终交付物:单 HTML 文件,内嵌 Mermaid,可以直接发给团队 review。</li>
+      <li>所有架构结论必须带证据:文件路径、class/function、配置项、调用链。没有证据的节点标记为 <code>inferred</code>。</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">B · PIPELINE</span>
+      <h2>从代码到架构图的抽取步骤</h2>
+      <span class="sub">flowchart TB</span>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. B</span>
+      <pre class="mermaid">
+flowchart TB
+  classDef step fill:#fff,stroke:#111,color:#111;
+  classDef core fill:#111,stroke:#111,color:#fff,stroke-width:2px;
+  classDef data fill:#f4f2eb,stroke:#111,color:#111;
+  classDef warn fill:#fff,stroke:#c93a2a,color:#111,stroke-width:2px;
+
+  A["01 · repo census<br/>languages · build files · entrypoints"]:::step
+  B["02 · boundary scan<br/>processes · services · threads · queues"]:::step
+  C["03 · dependency map<br/>imports · linking · adapters · clients"]:::step
+  D["04 · runtime flow<br/>configs · env · ports · streams"]:::step
+  E["05 · evidence ledger<br/>path + symbol + confidence"]:::data
+  F["06 · diagram synthesis<br/>topology / interface / sequence"]:::core
+  G["07 · gap marking<br/>unknowns · TODO · manual check"]:::warn
+  H["08 · HTML render<br/>RFC page + notes + tradeoffs"]:::core
+
+  A --> B --> C --> D --> E --> F --> G --> H
+      </pre>
+    </div>
+    <ul class="notes">
+      <li>先扫 <code>BUILD/CMake/Cargo/GoMod/package</code>,再扫入口文件,最后看配置;这个顺序能减少“目录名误导”的概率。</li>
+      <li>把 <code>ports / stream-id / topic / queue / db table / RPC client</code> 当作一等公民,它们通常比类名更接近真实架构边界。</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">C · PROMPT CONTRACT</span>
+      <h2>Claude Code 调用约定</h2>
+      <span class="sub">sequenceDiagram</span>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. C</span>
+      <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as user
+    participant CC as Claude Code
+    participant MCP as filesystem/git MCP
+    participant SK as architecture skill
+    participant OUT as HTML RFC
+
+    U->>CC: Analyze this repo and draw architecture page
+    CC->>MCP: list tree + read build/config/entrypoints
+    MCP-->>CC: files + snippets + git context
+    CC->>SK: normalize evidence into architecture model
+    SK->>SK: classify modules / flows / boundaries
+    SK-->>CC: Mermaid blocks + notes + risk matrix
+    CC->>OUT: render single-file HTML
+    OUT-->>U: reviewable architecture document
+
+    Note over CC,SK: Any node without code evidence is marked inferred, not fact.
+      </pre>
+    </div>
+    <ul class="notes">
+      <li>推荐让 Claude Code 每次先产 <code>architecture_model.json</code>,再产 HTML;这样后续改图不会重新“脑补”。</li>
+      <li>第一次输出不要追求完美,先把边界画出来;第二轮再让人补 <code>owner / latency / fault domain / rollout</code>。</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">D · DELIVERABLES</span>
+      <h2>Skill 应该固定产出的章节</h2>
+      <span class="sub">matrix</span>
+    </div>
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th style="width:18%">章节</th>
+          <th style="width:34%">内容</th>
+          <th style="width:26%">证据来源</th>
+          <th style="width:22%">可信度规则</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="proc">TOPOLOGY</td>
+          <td>进程、服务、模块、外部依赖</td>
+          <td>entrypoint、config、compose/systemd</td>
+          <td class="ok">必须有路径证据</td>
+        </tr>
+        <tr>
+          <td class="proc">INTERFACE</td>
+          <td>接口、adapter、client、repository</td>
+          <td>class/interface/proto/header</td>
+          <td class="ok">符号名可追溯</td>
+        </tr>
+        <tr>
+          <td class="proc">SEQUENCE</td>
+          <td>核心请求链路、启动链路、数据链路</td>
+          <td>caller/callee、topic、RPC、queue</td>
+          <td class="ok">至少两段调用证据</td>
+        </tr>
+        <tr>
+          <td class="proc warn">UNKNOWN</td>
+          <td>推断节点、缺失配置、需要人确认的风险</td>
+          <td>命名、目录结构、注释</td>
+          <td class="no">必须显式标记 inferred</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">E · TRADEOFFS</span>
+      <h2>为什么这么设计</h2>
+      <span class="sub">3 picks · 1 line each</span>
+    </div>
+    <ol class="tradeoffs">
+      <li><b>用 Skill 固化风格,而不是每次临场 prompt</b> —— 架构图的稳定性来自模板、术语表、证据规则和输出 schema,不是一次性的“请画漂亮点”。</li>
+      <li><b>先产结构化模型,再产 Mermaid</b> —— <code>architecture_model.json</code> 可以 review、diff、复用;HTML 只是最终渲染层。</li>
+      <li><b>把 unknown 画出来</b> —— 新项目最危险的不是图不完整,而是把推断画得像事实;红框/虚线能强迫 reviewer 补证据。</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>CLAUDE-CODE · ARCHITECTURE SKILL</span>
+    <span>RENDERED FROM HTML · MERMAID</span>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad:true,
+    securityLevel:'loose',
+    fontFamily:'Inter, "Noto Sans SC", system-ui, sans-serif',
+    themeVariables:{
+      primaryColor:'#ffffff', primaryTextColor:'#111111', primaryBorderColor:'#111111', lineColor:'#111111',
+      secondaryColor:'#ffffff', tertiaryColor:'#fafaf7', clusterBkg:'#fafaf7', clusterBorder:'#111111', edgeLabelBackground:'#ffffff',
+      actorBkg:'#ffffff', actorBorder:'#111111', actorTextColor:'#111111', actorLineColor:'#111111', signalColor:'#111111', signalTextColor:'#111111',
+      labelBoxBkgColor:'#ffffff', labelBoxBorderColor:'#111111', labelTextColor:'#111111', noteBkgColor:'#f4f2eb', noteBorderColor:'#111111', noteTextColor:'#111111',
+      sequenceNumberColor:'#ffffff', activationBkgColor:'#f4f2eb', activationBorderColor:'#111111'
+    },
+    flowchart:{htmlLabels:true,curve:'basis',padding:14,nodeSpacing:40,rankSpacing:60},
+    sequence:{mirrorActors:false,boxMargin:8,messageMargin:32,noteMargin:8}
+  });
+</script>
+</body>
+</html>
