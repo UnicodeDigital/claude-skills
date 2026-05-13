@@ -2,6 +2,17 @@
 
 One-command setup for [ccstatusline](https://github.com/sirmalloc/ccstatusline) with team-standard defaults.
 
+## Installation
+
+```bash
+git clone https://github.com/UnicodeDigital/claude-skills.git /tmp/claude-skills
+mkdir -p ~/.claude/skills
+cp -r /tmp/claude-skills/skills/setup-statusline ~/.claude/skills/
+rm -rf /tmp/claude-skills
+```
+
+装完直接在 Claude Code 里运行 `/setup-statusline`，无需重启。
+
 ## Features
 
 - Three-line layout optimized for 80-column terminals

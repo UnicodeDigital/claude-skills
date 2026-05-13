@@ -13,18 +13,18 @@ UnicodeDigital team shared skills for [Claude Code](https://claude.ai/code).
 
 ## Installation
 
-Install a specific skill by cloning this repo and copying the skill folder:
+每个 skill 的 README 里都有一份可直接复制的安装命令（cd 到上面表格里点 skill 名）。通用三步如下，把 `<skill-name>` 替换成你想装的那一个：
 
 ```bash
 # 1. Clone the repo
 git clone https://github.com/UnicodeDigital/claude-skills.git /tmp/claude-skills
 
-# 2. Copy the skill you need (e.g. setup-statusline)
+# 2. Copy the skill you need
 mkdir -p ~/.claude/skills
-cp -r /tmp/claude-skills/skills/setup-statusline ~/.claude/skills/
+cp -r /tmp/claude-skills/skills/<skill-name> ~/.claude/skills/
 
 # 3. Clean up
 rm -rf /tmp/claude-skills
 ```
 
-Then run the skill in Claude Code (e.g. `/setup-statusline`). No restart needed.
+装完直接在 Claude Code 里 `/<skill-name>` 调用，无需重启。一次装多个就把第 2 步重复多遍即可。
