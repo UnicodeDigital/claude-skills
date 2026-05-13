@@ -32,6 +32,8 @@ Read in this order — earlier files are more authoritative than directory names
 
 Use `Glob` for file discovery and `Read` for content. Use `Grep` with patterns like `class\s+\w+Service`, `@RestController`, `def\s+main`, `fn\s+main`, `addEventListener`, `consume`, `subscribe` to find boundaries.
 
+> ⚠️ **A module's real dependencies live in *its own* manifest, not the root one.** Top-level `CMakeLists.txt` `link_directories` / `include_directories`, monorepo root `BUILD` / `pyproject.toml` workspace deps, or a Go `go.work` often list the *union* across all sub-modules. Any individual module may only use a subset. Before claiming "X depends on Y", check `target_link_libraries` in the module's own CMakeLists, `dependencies` in its own `package.json`, `[dependencies]` in its own `Cargo.toml`, etc. The cost of getting this wrong is high: it produces confident-looking arrows in the topology diagram that are pure fiction. When in doubt, also grep for actual `#include "Y/..."` / `import Y` / `use Y::...` in the module's source.
+
 See `references/repo-scan-checklist.md` for a more exhaustive checklist.
 
 ### Phase 2 — Build the evidence ledger
@@ -48,25 +50,41 @@ Capture, for each unit:
 
 This ledger is the single source of truth for the diagrams. If you can't add a node to a diagram from the ledger, you can't add it.
 
-### Phase 3 — Pick diagrams
+> ⚠️ **Trace request *and* response paths — don't assume push events bypass the request router.** A common failure mode: you see a message-type enum (e.g. `msg.h Event::Type { OrderAck, PositionUpdate, BalanceUpdate, ... }`) and conclude the push types must flow through a different channel than the request types. Often they don't — the same dispatcher / SPSC queue / router is reused for both directions, and only the type discriminator differs. Before drawing "A → B → C" with no return arrow, grep the consumer side: who calls `recv()` on B's response queue? Who calls `processResponse()` on each Executor? Pushes (UserDataStream, server-initiated events) frequently share the request dispatcher's plumbing because that's where vendor↔market routing already exists. Wiring this wrong produces sequence diagrams that omit the actual response path.
 
-Default to three diagrams. Don't try to cram everything into one. Per-diagram rules of thumb:
+### Phase 3 — Pick diagrams and matrices
 
-- **Topology** (`flowchart LR`) — runtime units, external systems, buses/queues/DBs between them. Goal: "what processes exist and how do they talk."
-- **Interface / Modules** (`flowchart TB`) — internal layering, adapter/repository/client boundaries, prod-vs-sim/test implementations. Goal: "how is the code organized inside one unit."
-- **Sequence** (`sequenceDiagram`) — one representative flow: a typical request, startup, or a rollout/failure path. Goal: "what happens over time."
+**Section letters A–F are *positions*, not topics.** Each slot's title should come from what this system actually needs the reader to understand, not from a fixed template. Common building blocks:
 
-Aim for **6–14 nodes per diagram**. If you have more, split or aggregate. If you have fewer, you're probably not yet looking hard enough.
+- **Topology** (`flowchart LR`) — runtime units, external systems, buses/queues/DBs between them. Answers: "what processes exist and how do they talk."
+- **Interface / Modules** (`flowchart TB`) — internal layering, adapter/repository/client boundaries, prod-vs-sim implementations. Answers: "how is the code organized inside one unit."
+- **Sequence** (`sequenceDiagram`) — one representative flow: a typical request, startup, or rollout. Answers: "what happens over time on the happy path."
+- **Failure / Disconnect sequence** (`sequenceDiagram`) — what the system does when something breaks: reconnect, retry, fail-over, reconcile. Earn-its-place criterion: the system has a characteristic failure mode that the architecture explicitly handles (trading exchange disconnect, message broker rebalance, leader election).
+- **State / Truth matrix** (table) — for each kind of state (orders, sessions, cache lines, leader epoch), who is authoritative, what's cached locally, how it's recovered. Earn-its-place: the system has eventual-consistency boundaries the reader must internalize.
+- **Tradeoffs** (numbered list) — 3-5 architectural decisions, each with the rejected alternative.
+
+**Pick the combination that matches the system.** Three common patterns:
+
+| System type | Typical A–F |
+|---|---|
+| Real-time / trading / IoT | A topology · B interface · C happy sequence · D state truth · E disconnect sequence · F tradeoffs |
+| Web API / CRUD service | A topology · B interface · C request sequence · D SLA/ownership matrix · E tradeoffs (drop one diagram if simple) |
+| Library / SDK | A module layering · B public API surface matrix · C tradeoffs (no live topology, no sequence) |
+
+Aim for **6–14 nodes per diagram**. If you have more, split or aggregate. If you have fewer, you're probably not yet looking hard enough — or this isn't a diagram, it's a sentence.
 
 ### Phase 4 — Render the HTML
 
 The skill ships with the visual template at `assets/template.html`. You should produce a new HTML file that:
 
 1. **Uses the same CSS, fonts, and Mermaid theme** as `assets/template.html`. The easiest path: read `assets/template.html`, copy its `<style>` block, `<script>` tags, and `mermaid.initialize({...})` call verbatim. Don't redesign — the visual identity is the point.
-2. **Replaces the example content** (the "Claude Code — Repo Architecture Diagram Skill" demo content in the template) with content driven by the evidence ledger.
-3. **Keeps the section structure**: masthead + lede + section blocks A/B/C + matrix D + tradeoffs E + footer. Drop sections if you have nothing real to put there — don't pad.
+2. **Replaces ALL the example content.** The template's example content (lede, A/B/C/D/E topics, matrix headers, tradeoffs) describes the skill itself — it's meta-content, not a template for architecture topics. Inherit only the visual structure: masthead + lede + section blocks + matrix + tradeoffs + footer. Pick the section topics from Phase 3 based on what this system needs, not from the template's titles.
+3. **Don't pad sections.** Every block has to earn its place. Red flags that a section is padded:
+   - The matrix is a generic "module × {what it owns / what dies if it dies}" table where most rows say "process dies, things downstream stop". This is information-free — delete the block and pick a matrix that's load-bearing for *this* system (state truth / SLA + owner / rollout phases / data lineage).
+   - A tradeoff's "rejected alternative" is something nobody would actually propose. Delete it.
+   - A sequence diagram that just renders the topology as time-ordered messages. Either it's adding a real time dimension (concurrency, ordering, retries) or it's redundant.
 
-Follow `references/style-guide.md` for visual conventions (which Mermaid `classDef` to use for which kind of node, when to use the red accent, etc.).
+Follow `references/style-guide.md` for visual conventions (which Mermaid `classDef` to use, when to use the red accent, tradeoff writing rules).
 
 When writing the output file, default to writing it next to the analyzed repo as `architecture-rfc.html` unless the user asks otherwise.
 
@@ -79,6 +97,18 @@ This is the most important step. For any node, edge, or claim that you couldn't 
 - For unknown ownership, fault domains, latency, or rollout strategy, include a placeholder row in the matrix table with the value `needs owner` rather than guessing.
 
 It's better for the document to say "I don't know" in a marked way than to draw a confident-looking lie.
+
+### Phase 6 — Surface review-worthy claims
+
+Before declaring the document done, **proactively flag the high-risk claims you want the user to verify**. These are the categories that are most often wrong and most consequential when wrong:
+
+1. **Inter-module dependency arrows** — did you actually read the *consuming* module's manifest/imports, or only the top-level build file? (Re-read the Phase 1 warning.)
+2. **Request and push routing** — for every "A → B" you drew, do you have evidence for the corresponding "B → A" / "B → C" return path? Pushes especially: did you grep who consumes the response queue?
+3. **State ownership / truth source claims** — when you wrote "X is the source of truth", does the code path actually update X first, or is X just a cache that gets reconciled?
+4. **Concurrency / thread model** — did you confirm "main thread only" / "this queue is SPSC" by reading the actual handler code, or are you assuming from naming?
+5. **Reconnect / retry / recovery behavior** — for anything labeled "automatic", did you find the timer/loop that drives it, or are you inferring from method names like `reconnect()`?
+
+End your handoff message with: "I'd specifically like you to verify these claims: [list 3-5]." This forces the conversation into a verify-before-commit loop and prevents confident hallucinations from surviving review.
 
 ## Output rules
 

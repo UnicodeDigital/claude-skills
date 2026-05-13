@@ -91,6 +91,13 @@ The template has `td.ok` (✓ green) and `td.no` (✗ red) helpers — use them 
 
 Three to five entries, each a single sentence answering "why this design and not the obvious alternative?". They render as `01`, `02`, `03` in monospace boxes. If you can't articulate the alternative being rejected, the tradeoff probably isn't real.
 
+**Honest absence framing.** When a tradeoff covers something the framework deliberately doesn't do (no risk gate, no auto-reconcile, no observability layer), don't frame it as "we chose not to" — that reads as smug and overconfident. Frame it as the actual reason it isn't there yet:
+
+- ✓ "X is not in the framework layer because the abstraction is hard — strategies want very different X policies, and the common pattern hasn't sedimented yet. Will revisit when 2-3 production callers converge on a shape."
+- ✗ "We deliberately omit X to keep the framework lean." (Too smug, and usually wrong — most "deliberate omissions" are actually "haven't gotten around to it" or "designing it well is hard".)
+
+The honest version invites the reader into the real decision space; the smug version closes the conversation.
+
 ## Anti-patterns
 
 - Rainbow colors. The palette is monochrome plus red. That's it.
