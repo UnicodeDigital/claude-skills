@@ -1,0 +1,484 @@
+<!doctype html>
+<!--
+  ============================================================================
+  TEMPLATE NOTICE
+  This file is the VISUAL + STRUCTURAL template for the /arch-generated skill.
+
+  Inherit:  the <style> block, <script> (Mermaid theme + init), CSS classes
+            (`.block`, `.diagram`, `.notes`, `.matrix`, `.tradeoffs`,
+            `.steps`, `pre.code`, `.tag.good` for green variant, etc.),
+            and the OVERALL SECTION FLOW (masthead / lede / blocks A-E /
+            footer).
+
+  REPLACE EVERYTHING ELSE.  The example content below is a real architecture
+  + onboarding doc for the Pandora trading system. It serves only as a
+  reference for tone, density, and the kinds of things a section may contain.
+  When generating a doc for a different repo, replace ALL titles, lede,
+  diagrams, code samples, configs, matrix rows, and tradeoffs with content
+  driven by THAT repo's evidence ledger.
+
+  Section letters A-E are POSITIONS, not topics. The common pattern for
+  living systems is:
+    A · OVERVIEW       (topology)
+    B · GETTING STARTED (onboarding: min-viable code + config + callback table)
+    C · SEQUENCE       (happy paths, multiple diagrams OK)
+    D · STATE          (truth source + cache + recovery matrix)
+    E · BOUNDARY       (责任分工 + tradeoffs combined)
+  But pick what THIS system needs — see SKILL.md Phase 3.
+  ============================================================================
+-->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pandora 交易系统架构</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#111;
+    --ink-2:#333;
+    --ink-3:#666;
+    --paper:#fafaf7;
+    --paper-2:#f1efe8;
+    --accent:#c93a2a;
+    --green:#2a7a3a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:"Inter","Noto Sans SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body{
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.035) 1px, transparent 1px);
+    background-size:32px 32px;
+  }
+  .page{max-width:1120px;margin:0 auto;padding:56px 64px 96px}
+  header.masthead{
+    border-top:3px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:18px 0 14px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    margin-bottom:36px;
+  }
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  h1{font-family:"Noto Sans SC","Inter",sans-serif;font-weight:700;font-size:34px;line-height:1.15;margin:6px 0 0;letter-spacing:-.01em}
+  .meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right;line-height:1.6;white-space:nowrap}
+  .meta b{color:var(--ink);font-weight:600}
+  .lede{border-left:2px solid var(--ink);padding:4px 0 4px 18px;margin:0 0 44px;font-size:14.5px;line-height:1.7;color:var(--ink-2);max-width:820px}
+  code{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-2);padding:1px 5px;border:1px solid #e3e0d6;border-radius:2px}
+  pre.code{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.6;background:#fff;border:1px solid var(--ink);padding:16px 18px;margin:0 0 14px;overflow-x:auto;color:var(--ink-2);white-space:pre}
+  pre.code b{color:var(--ink);font-weight:600}
+  pre.code .cmt{color:var(--ink-3);font-style:italic}
+  .block{margin:0 0 56px}
+  .block-head{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.16em;background:var(--ink);color:var(--paper);padding:4px 10px 3px;border-radius:1px;white-space:nowrap;flex-shrink:0}
+  .tag.good{background:var(--green)}
+  .sub{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3)}
+  .diagram{border:1px solid var(--ink);background:#fff;padding:22px 18px 14px;margin:0 0 14px;position:relative;overflow-x:auto}
+  .diagram::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--ink)}
+  .corner{position:absolute;top:6px;right:10px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.1em}
+  .notes{list-style:none;padding:0;margin:0;font-size:13px;line-height:1.75;color:var(--ink-2)}
+  .notes li{padding-left:22px;position:relative;margin:0 0 4px}
+  .notes li::before{content:"";position:absolute;left:2px;top:11px;width:10px;height:1px;background:var(--ink)}
+  .accent{color:var(--accent);font-weight:600}
+  .ok{color:var(--green);font-weight:600}
+  .steps{counter-reset:step;list-style:none;padding:0;margin:0 0 18px}
+  .steps li{counter-increment:step;padding:4px 0 4px 34px;position:relative;font-size:13.5px;line-height:1.7;color:var(--ink-2);margin:0 0 6px}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:3px;width:20px;height:20px;background:var(--ink);color:var(--paper);font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border-radius:50%}
+  table.matrix{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--ink)}
+  table.matrix th,table.matrix td{border-bottom:1px solid #ddd;border-right:1px solid #eee;padding:10px 12px;text-align:left;vertical-align:top}
+  table.matrix th{background:var(--ink);color:var(--paper);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;font-weight:500}
+  table.matrix tr:last-child td{border-bottom:none}
+  table.matrix td:last-child,table.matrix th:last-child{border-right:none}
+  td.proc{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600}
+  .tradeoffs{counter-reset:item;border:1px solid var(--ink);background:#fff;padding:0;margin:0;list-style:none}
+  .tradeoffs li{counter-increment:item;padding:14px 18px 14px 56px;border-bottom:1px solid #e6e3da;position:relative;font-size:13.5px;line-height:1.65;color:var(--ink-2)}
+  .tradeoffs li:last-child{border-bottom:none}
+  .tradeoffs li::before{content:"0" counter(item);position:absolute;left:18px;top:14px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink);font-weight:600;letter-spacing:.05em;border:1px solid var(--ink);padding:2px 6px}
+  footer{margin-top:64px;padding-top:14px;border-top:1px solid var(--ink);display:flex;justify-content:space-between;align-items:center;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
+  .mermaid svg{font-family:"Inter","Noto Sans SC",sans-serif !important}
+  .mermaid .nodeLabel{font-size:13px !important}
+  .mermaid .edgeLabel{font-family:"JetBrains Mono",monospace !important;font-size:11px !important;background:#fff !important}
+  .mermaid .edgeLabel rect{fill:#fff !important}
+  .mermaid .cluster rect{fill:#fafaf7 !important;stroke:#111 !important;stroke-width:1px !important}
+  .mermaid .cluster .cluster-label .nodeLabel{font-family:"JetBrains Mono",monospace !important;font-size:11px !important;letter-spacing:.08em;text-transform:uppercase}
+  .mermaid .actor{fill:#fff !important;stroke:#111 !important}
+  .mermaid .messageText{font-family:"JetBrains Mono",monospace !important;font-size:11px !important}
+  .mermaid .noteText{font-family:"Inter","Noto Sans SC",sans-serif !important;font-size:11px !important}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">ARCHITECTURE · pandora</div>
+      <h1>Pandora 交易系统架构</h1>
+    </div>
+    <div class="meta">
+      <b>OWNER</b> trading-infra<br>
+      <b>STATUS</b> Living Document
+    </div>
+  </header>
+
+  <p class="lede">
+    Pandora 是一套面向 10+ 加密交易所(<code>Binance/Bybit/OKX/Gate/Bitget/Kucoin/MEXC/Hyperliquid/Aster/Lighter</code>)的 C++ 量化交易系统,覆盖从实时行情、策略执行、订单/持仓/余额管理到交易所对接的完整链路。
+    策略开发者继承 <code>StrategyBase</code>:系统把<b>实时行情(MD)</b>、<b>订单/持仓/余额(OMS)</b>、<b>历史回放(Sim)</b>抹平成同一套虚函数回调,在回调里决策、调 <code>sendOrder</code> 下单;
+    每个交易所一个 <b>Executor</b> 把请求翻译成该所协议,经 <code>Exchange::Agent</code> + <code>SessionBundle</code>(自实现的 TCP/TLS/HTTP/HTTP2/WS 网络栈,底层 mbedtls + nghttp2)发往交易所。
+    <b>所有回调都在主线程触发</b>,策略逻辑天然单线程、无需加锁;跨线程边界用 SPSC 队列 + 内存池。
+  </p>
+
+  <!-- ============================ A · OVERVIEW ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">A · OVERVIEW</span>
+      <span class="sub">flowchart LR</span>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. A</span>
+      <pre class="mermaid">
+flowchart LR
+  classDef base fill:#111,stroke:#111,color:#fff,stroke-width:2px;
+  classDef tool fill:#fff,stroke:#111,color:#111;
+  classDef opt fill:#fff,stroke:#444,stroke-dasharray:5 4,color:#111;
+  classDef bus fill:#f4f2eb,stroke:#111,stroke-dasharray:2 2,color:#111;
+  classDef risk fill:#fff,stroke:#c93a2a,color:#111,stroke-width:2px;
+
+  USR["<b>策略</b><br/><i>extends StrategyBase</i>"]:::tool
+
+  subgraph L1["L1 · STRATEGY"]
+    SB["<b>StrategyBase</b><br/>事件循环 + 虚函数回调<br/><i>src/strat</i>"]:::base
+  end
+
+  subgraph L2["L2 · 行情源"]
+    MD["<b>MD::Agent</b><br/>实时行情<br/><i>src/md</i>"]:::tool
+    LD["MdLoader<br/>历史回放<br/><i>src/sim</i>"]:::opt
+    KF[("Kafka MD")]:::bus
+    RD[("Redis pub/sub")]:::bus
+  end
+
+  subgraph L3["L3 · OMS (订单/持仓/余额)"]
+    OM["<b>OrderManager × N</b><br/>per vendor+market<br/><i>src/oms</i>"]:::base
+    OD["OrderDispatcher<br/>双向路由 · SPSC · 内存池"]:::tool
+    EX["Executor × N<br/><i>per-exchange · vendor 差异全封在此</i>"]:::tool
+    PM["PositionManager"]:::tool
+  end
+
+  subgraph L4["L4 · 协议 / 网络"]
+    EA["<b>Exchange::Agent</b><br/>编解码 · 多 Vendor<br/><i>src/exchange</i>"]:::base
+    SES["SessionBundle<br/>TCP/TLS/HTTP/HTTP2/WS<br/><i>mbedtls + nghttp2</i>"]:::tool
+  end
+
+  subgraph L5["L5 · 交易所 / 历史数据"]
+    XCG["Crypto Exchanges<br/>10+ vendors"]:::risk
+    HIST[("Historical Data<br/>Arrow / Zstd")]:::bus
+  end
+
+  USR --> SB
+  SB ==> OM
+  SB --> MD
+  SB -. sim only .-> LD
+  SB -. optional .-> KF
+  SB -. optional .-> RD
+
+  OM == "req / rsp + push" ==> OD
+  OD == "req / rsp + push" ==> EX
+  EX --> PM
+
+  MD --> EA
+  EX ==> EA
+  EA ==> SES
+  SES ==> XCG
+  LD -. arrow/zstd .-> HIST
+      </pre>
+    </div>
+    <ul class="notes">
+      <li><b>L1 · STRATEGY</b>:策略层。继承 <code>StrategyBase</code>、override 回调、调发单/订阅接口;L2–L5 都在回调背后。</li>
+      <li><b>L2 · 行情源</b>:实盘走 <code>MD::Agent</code>;回测时 <code>MdLoader</code> 取代 <code>MD::Agent</code>(读 Arrow/Zstd 历史数据),策略回调代码不变;Kafka/Redis 视策略需求开关。</li>
+      <li><b>L3 · OMS</b>:订单/持仓/余额。按 <code>vendor + market</code> 各一个 <code>OrderManager</code>;每个交易所一个 <code>Executor</code> 子类,把"下单/撤单/查询"翻译成该所协议,协议/签名/限频差异全封在 Executor 内、策略无感。</li>
+      <li><b>L4 · 协议/网络</b>:<code>Exchange::Agent</code> 负责多 vendor 的编解码,<code>SessionBundle</code> 是自实现的网络栈(TCP/TLS/HTTP/HTTP2/WS,底层 mbedtls + nghttp2)。</li>
+      <li><b>L5 · 交易所/历史数据</b>:实盘连 10+ 交易所;回测读 Arrow/Zstd 历史数据。断线/重连由 <code>SessionBundle</code> 兜底(见 D)。</li>
+    </ul>
+  </section>
+
+  <!-- ============================ B · GETTING STARTED ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag good">B · GETTING STARTED</span>
+      <span class="sub">onboarding</span>
+    </div>
+
+    <ol class="steps">
+      <li><b>继承 <code>StrategyBase</code></b>,override 关心的回调(行情 / 订单 / 账户)。</li>
+      <li><b><code>init("config/strategy.cfg")</code></b> 读 venue + 模块配置,<b><code>subscribeMd(...)</code></b> 订阅行情。</li>
+      <li><b><code>run()</code></b> 进事件循环——之后所有回调在主线程被触发,在回调里 <code>getOrderManager(...).sendOrder(...)</code>。</li>
+    </ol>
+
+    <pre class="code">#include "strat/strategy_base.h"
+#include "oms/order_manager.h"
+using namespace strat;
+
+class MyStrategy : public StrategyBase {
+  <span class="cmt">// —— 行情回调:订阅了对应 topic 才会来 ——</span>
+  void onBookTicker(const MD::BookTicker&amp; bt) override { <span class="cmt">/* BBO 更新 → 决策 */</span> }
+  void onTrade(const MD::Trade&amp; t) override {}
+
+  <span class="cmt">// —— 订单回调 ——</span>
+  void onOrderAcked (const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
+  void onOrderFilled(const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
+  void onOrderRejected(const ResponseHeader&amp; h, const ErrorMsg&amp; e) override {}
+
+  <span class="cmt">// —— 账户回调 ——</span>
+  void onBalanceUpdate(BalanceUpdate* r) override {}
+
+  <span class="cmt">// —— 下单:在任意回调里调 ——</span>
+  void place(const Symbol&amp; sym, Side side, Price px, Quantity qty) {
+    RequestHeader h{};
+    h.vendor = Exchange::Vendor::BINANCE;        <span class="cmt">// 选哪个所</span>
+    h.market = Exchange::Market::LINEAR;         <span class="cmt">// 现货 SPOT / U 本位 LINEAR ...</span>
+    h.account_type = AccountType::CROSSMARGIN;
+    string_to_char_array("my_account", h.account_id);
+
+    NewOrder o{};
+    string_to_char_array(sym, o.symbol);         <span class="cmt">// "btc-usdt"</span>
+    o.price = px; o.qty = qty; o.side = side;
+    o.type = OrderType::LIMIT; o.tif = OrderTif::GTC;
+    <span class="cmt">// client_order_id 不赋值:OMS 启动后自动分配自增 cid;</span>
+    <span class="cmt">// 仅当需要自定义编号布局时,才显式 o.client_order_id = ...;</span>
+
+    getOrderManager(h.vendor, h.market).sendOrder(&amp;h, &amp;o);
+    <span class="cmt">// 结果异步回到 onOrderAcked / onOrderRejected</span>
+  }
+};
+
+int main() {
+  MyStrategy s;
+  s.init("config/strategy.cfg");                 <span class="cmt">// venue + 模块</span>
+  s.subscribeMd(Exchange::Vendor::BINANCE, Exchange::Market::LINEAR,
+                MD::TopicType::BookTicker, "btc-usdt");
+  s.run();                                       <span class="cmt">// 事件循环 · 回调在主线程触发</span>
+}</pre>
+
+    <ul class="notes" style="margin-bottom:18px">
+      <li><b>发单/撤单/查询</b>:<code>getOrderManager(vendor, market)</code> 拿到对应 <code>OrderManager</code>,再调 <code>sendOrder(&amp;header, &amp;order)</code> / <code>cancelOrder(client_order_id)</code> / <code>queryOpenOrders</code> / <code>queryBalance</code> / <code>queryPosition</code>。本地还可 <code>findOrder</code> / <code>getOpenOrders</code> / <code>hasInFlightOrder</code> 查缓存。</li>
+      <li><b>订阅行情</b>:<code>subscribeMd(vendor, market, MD::TopicType, symbol, settings)</code>。<code>TopicType</code>:<code>Trade · Orderbook · PartialOrderbook · MarkPrice · BookTicker · AggTrade · Kline</code>。订阅了哪个 topic,对应 <code>onXxx</code> 才会被回调。</li>
+      <li><b>定时器</b>:<code>setTimer(interval_s, handler, is_periodic, run_immediately)</code> 注册周期/单次回调(轮询、对账、撤超时单常用)。</li>
+      <li>完整的发单/撤单/查询用法参考 <code>src/examples/oms_test.cpp</code>。</li>
+    </ul>
+
+    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:16px 0 8px">▼ 可 override 的回调(按来源分组)</p>
+    <table class="matrix">
+      <thead>
+        <tr><th style="width:18%">来源</th><th style="width:46%">回调</th><th style="width:36%">何时触发</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="proc">行情 MD</td>
+          <td><code>onTrade</code> · <code>onOrderbook</code> · <code>onPartialOrderbook</code> · <code>onBookTicker</code> · <code>onMarkPrice</code> · <code>onKline</code></td>
+          <td>订阅的 topic 有新数据(<code>subscribeMd</code> 后)</td>
+        </tr>
+        <tr>
+          <td class="proc">订单 OrderListener</td>
+          <td><code>onOrderAcked</code> · <code>onOrderFilled</code> · <code>onOrderCanceled</code> · <code>onOrderExpired</code> · <code>onOrderRejected</code> · <code>onCancelRejected</code> · <code>onQueryOpenOrdersResp</code></td>
+          <td>下单/撤单的回报、成交推送、查单响应</td>
+        </tr>
+        <tr>
+          <td class="proc">账户 AccountListener</td>
+          <td><code>onBalanceUpdate</code> · <code>onPositionUpdate</code> · <code>onQueryBalanceResp</code> · <code>onQueryPositionResp</code> · <code>onQueryAccountInfoResp</code></td>
+          <td>余额/持仓推送、对应 query 的响应</td>
+        </tr>
+        <tr>
+          <td class="proc">连接状态</td>
+          <td><code>onDataStreamSubscribe</code> · <code>onSubscribeDisconnected</code></td>
+          <td>数据流订阅成功 / 断连(对账时机,见 D)</td>
+        </tr>
+        <tr>
+          <td class="proc">通用错误</td>
+          <td><code>onUnifiedErrorResp</code></td>
+          <td>各类请求的统一错误兜底</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:20px 0 8px">▼ strategy.cfg 一个 venue 块(敏感值用占位)</p>
+    <pre class="code">prod = {
+  venues = (
+    {
+      strategy_name = "my_strat";
+      vendor = 0;          <span class="cmt">// 0 BINANCE 1 BYBIT 2 GATE 3 HYPERLIQUID 4 OKX</span>
+                           <span class="cmt">// 5 ASTER 6 LIGHTER 7 BITGET 8 DEX 9 KUCOIN 10 MEXC 11 IBKR</span>
+      market = 1;          <span class="cmt">// 0 SPOT 1 LINEAR 2 INVERSE 3 OPTIONS ...</span>
+      accounts = (
+        {
+          account_type = 2;          <span class="cmt">// 1 SPOT 2 CROSSMARGIN 3 ISOLATEDMARGIN 4 UNIFIED</span>
+          account_id = "my_account";
+          api_key = "xxx";
+          api_secret = "yyy";
+          <span class="cmt">// OKX 另需 passphrase;DEX 类用 extras{ private_key=... }</span>
+        }
+      );
+    }
+  );
+  modules = { oms = { enabled = true; }; md = { enabled = true; }; };
+};</pre>
+    <ul class="notes" style="margin-top:8px">
+      <li><code>vendor</code> + <code>market</code> + <code>account_id</code> 三元组要和代码里 <code>RequestHeader</code> 对得上,否则 <code>getOrderManager</code> 找不到对应 venue。</li>
+    </ul>
+  </section>
+
+  <!-- ============================ C · SEQUENCE ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">C · SEQUENCE</span>
+      <span class="sub">sequenceDiagram</span>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. C1 · 下单 → 回报</span>
+      <pre class="mermaid">
+sequenceDiagram
+    participant SB as StrategyBase（策略基类/主线程）
+    participant OM as OrderManager
+    participant OD as OrderDispatcher（dispatcher 线程）
+    participant EX as Executor
+    participant AG as Agent（消息转换/网络IO 线程）
+    participant V as Exchange（交易所）
+
+    SB->>OM: sendOrder()
+    OM->>OD: sendRequest()
+    loop dispatcher 线程
+        OD->>EX: 分发请求 (readRequest)
+        EX->>AG: agent->send()
+        loop 网络IO 线程
+            AG->>AG: 报文组装
+            AG->>V: 发送交易所
+            V-->>AG: 返回订单回报 / 订单更新
+            AG->>AG: 解析报文
+            AG->>AG: 连接保持、用户鉴权等
+        end
+        AG-->>EX: agent->recv() 获取响应事件
+        EX-->>OD: 分发响应 (readResponse)
+        OD-->>OM: dispatcher->recv()
+        OM-->>SB: onOrderAcked / onOrderFilled 等回调
+    end
+    Note over SB,V: 各模块独立线程并行运行
+      </pre>
+    </div>
+    <div class="diagram">
+      <span class="corner">FIG. C2 · 订阅实时行情</span>
+      <pre class="mermaid">
+sequenceDiagram
+    participant SB as StrategyBase（策略基类/主线程）
+    participant MD as MD::Agent（行情线程）
+    participant V as Exchange（交易所）
+
+    SB->>MD: subscribeMd(vendor, market, topic, symbol)
+    MD->>V: WS 订阅请求
+    V-->>MD: 订阅确认
+    loop 行情线程
+        V-->>MD: 行情帧 (持续推送)
+        MD->>MD: 解析并归一化 MD::Trade / Orderbook / BookTicker
+        MD-->>SB: onTrade / onBookTicker / onOrderbook 等回调
+    end
+    Note over SB,V: 各模块独立线程并行运行
+      </pre>
+    </div>
+    <ul class="notes">
+      <li><b>下单(C1)</b>:策略 <code>sendOrder</code> 后,请求经 <code>OrderManager → OrderDispatcher → Executor → Agent</code> 逐级转换发往交易所;回报沿 <code>Agent → Executor → OrderDispatcher → OrderManager</code> 返回,最终在主线程触发 <code>onOrderAcked</code> / <code>onOrderFilled</code>。撤单、查询走<b>同一条链路</b>,只是请求类型不同。</li>
+      <li><b>订单/持仓/余额的主动推送(UserDataStream)走完全相同的回程</b>,不是另一条独立 stream——只是事件类型不同,最终回到 <code>onPositionUpdate</code> / <code>onBalanceUpdate</code>。</li>
+      <li><b>行情(C2)</b>:<code>subscribeMd</code> 后行情流持续推送,<code>MD::Agent</code> 解析归一化成 <code>MD::*</code> 结构,回到 <code>onTrade</code> / <code>onBookTicker</code> 等;与订单回调同在主线程事件循环。</li>
+      <li>这是 happy path;断线 / 重连见 D。</li>
+    </ul>
+  </section>
+
+  <!-- ============================ D · STATE ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">D · STATE</span>
+      <span class="sub">orders · positions · balance · sessions</span>
+    </div>
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th style="width:16%">状态</th>
+          <th style="width:14%">以谁为准</th>
+          <th style="width:34%">本地缓存 / 在线更新</th>
+          <th style="width:36%">断线后 / 恢复</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="proc">挂单</td>
+          <td>交易所</td>
+          <td><code>OrderManager</code> 内部 order cache;靠成交推送 + 自己 send/cancel 的回报更新</td>
+          <td>框架定时巡检:正常 <b>5s</b> 一轮查超时,断线后提速到 <b>1s</b>;策略可在 <code>onSubscribeDisconnected</code> 里主动 <code>queryOpenOrders</code> 对账</td>
+        </tr>
+        <tr>
+          <td class="proc">持仓</td>
+          <td>交易所</td>
+          <td><code>PositionManager</code> 从 <code>onOrderFilled</code> 增量;持仓推送回填</td>
+          <td>启动时策略 <code>initPositions</code>;<b>框架不自动对账</b>,策略按需 <code>queryPosition</code></td>
+        </tr>
+        <tr>
+          <td class="proc">余额</td>
+          <td>交易所</td>
+          <td>经 <code>onBalanceUpdate</code> 透传;框架自身不存余额视图</td>
+          <td>策略主动 <code>queryBalance</code> → <code>onQueryBalanceResp</code></td>
+        </tr>
+        <tr>
+          <td class="proc">连接</td>
+          <td><b>SessionBundle</b></td>
+          <td>连接池 + 心跳 + 重连定时器</td>
+          <td><b>底层自动重连</b>(默认开,1s 间隔),向上 emit <code>Session_Disconnected</code> / <code>Session_Connected</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class="notes" style="margin-top:14px">
+      <li><b>本地缓存可能比交易所慢几个事件,一切以交易所数据为准。</b> 框架只对挂单做定时巡检,持仓/余额不自动对账、由策略按需 query。策略要能容忍"本地比交易所落后几个事件"的窗口(比如 <code>onOrderFilled</code> 还没到、但仓位实际已变)。</li>
+      <li><b>断线时框架的动作</b>:<code>SessionBundle</code> 自动重连;挂单巡检 5s→1s;透传 <code>onSubscribeDisconnected</code>(WS_STREAM 断时)。<b>挂单不动 / 仓位不变 / 余额不重置</b>。</li>
+      <li><b>断线后策略需处理的</b>:在 <code>onSubscribeDisconnected</code> 里决定是否 <code>queryOpenOrders</code> 对账、是否撤掉旧挂单、是否重发失败的单。重连恢复后框架回调 <code>onDataStreamSubscribe</code>、巡检恢复 5s。<span class="accent">注意</span>:断线期间交易所那边挂单可能仍有效(尤其 GTC),不主动对账会和本地分歧。</li>
+    </ul>
+  </section>
+
+  <!-- ============================ E · BOUNDARY ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag">E · BOUNDARY</span>
+      <span class="sub">分工 + 取舍</span>
+    </div>
+    <ol class="tradeoffs">
+      <li><b>框架负责:消息无丢失地传到 / 传回 + vendor 协议正确。</b> 出向把请求按 vendor+market 翻译成交易所协议发出,入向把回报/推送无锁地送回回调;10+ 交易所的协议、签名、限频、断线重连差异全替策略抹平。策略拿到的永远是统一的 <code>OrderUpdate</code> / <code>BalanceInfo</code> / <code>MD::*</code> 结构。</li>
+
+      <li><b>策略负责:对账与风控。</b> 本地缓存可能滞后、一切以交易所为准,框架<b>不替策略做任何对账</b>;pre-trade 风控、跨 vendor 仓位聚合、断线后对账策略(cancel-all / query-and-merge / 信任推送)都在策略层。这些需求各策略口径差异巨大,暂不在框架层抽象——好处是框架边界清晰,策略的风控规则变化不会触发框架回归。</li>
+
+      <li><b>断线只有一个权威源(SessionBundle)。</b> 重连固化在最底层网络栈,上面所有层只通过 <code>Session_Disconnected</code> / <code>Session_Connected</code> 事件感知并各自反应——不会出现多层抢着重连的"重连风暴"。代价:每层(含策略)要显式实现"下层断了该怎么办"。</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>PANDORA · ARCH + ONBOARDING</span>
+    <span>RENDERED FROM CODE · MERMAID</span>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad:true,
+    securityLevel:'loose',
+    fontFamily:'Inter, "Noto Sans SC", system-ui, sans-serif',
+    themeVariables:{
+      primaryColor:'#ffffff', primaryTextColor:'#111111', primaryBorderColor:'#111111', lineColor:'#111111',
+      secondaryColor:'#ffffff', tertiaryColor:'#fafaf7', clusterBkg:'#fafaf7', clusterBorder:'#111111', edgeLabelBackground:'#ffffff',
+      actorBkg:'#ffffff', actorBorder:'#111111', actorTextColor:'#111111', actorLineColor:'#111111', signalColor:'#111111', signalTextColor:'#111111',
+      labelBoxBkgColor:'#ffffff', labelBoxBorderColor:'#111111', labelTextColor:'#111111', noteBkgColor:'#f4f2eb', noteBorderColor:'#111111', noteTextColor:'#111111',
+      sequenceNumberColor:'#ffffff', activationBkgColor:'#f4f2eb', activationBorderColor:'#111111'
+    },
+    flowchart:{htmlLabels:true,curve:'basis',padding:14,nodeSpacing:40,rankSpacing:60},
+    sequence:{mirrorActors:false,boxMargin:8,messageMargin:32,noteMargin:8}
+  });
+</script>
+</body>
+</html>

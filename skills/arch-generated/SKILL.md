@@ -1,14 +1,14 @@
 ---
-name: architecture-rfc-diagram
-description: Reads a repository's source code and produces a polished, single-file architecture RFC HTML page with Mermaid diagrams in a black-and-white staff-engineering style. Use this whenever the user wants to "understand a new project's architecture", "draw the architecture", "generate an architecture diagram from code", "produce an architecture RFC", or "map modules/services/data flows" — even if they don't explicitly say "diagram" or "RFC". Also use when the user references this skill's visual style (monochrome line-art HTML with Mermaid topology/interface/sequence diagrams).
+name: arch-generated
+description: Reads a repository's source code and produces a polished, single-file HTML doc — a hybrid of architecture diagram (Mermaid topology + sequence) AND onboarding guide (minimum-viable code sample, config example, callback/API inventory), in a black-and-white staff-engineering style. Use this whenever the user wants to "understand a new project's architecture", "draw the architecture", "generate an architecture diagram from code", "produce an onboarding doc / living architecture doc", or "map modules/services/data flows" — even if they don't explicitly say "diagram" or "onboarding". Also use when the user references this skill's visual style (monochrome line-art HTML with Mermaid + code snippets + state-truth matrix).
 disable-model-invocation: false
 argument-hint: "[path-to-repo]"
 allowed-tools: Read Glob Grep Bash Write
 ---
 
-# Architecture RFC Diagram
+# Arch-Generated
 
-Turn an unfamiliar codebase into a polished, single-file HTML architecture RFC. The output is opinionated: monochrome line-art, Mermaid diagrams (topology + interface + sequence), evidence-backed nodes, and explicit `inferred` markers for anything you couldn't verify.
+Turn an unfamiliar codebase into a polished, single-file HTML doc that's both an **architecture overview** AND an **onboarding guide** for new contributors. The output is opinionated: monochrome line-art, Mermaid diagrams, evidence-backed nodes, executable code samples, and explicit `inferred` markers for anything you couldn't verify.
 
 ## Why this exists
 
@@ -52,24 +52,33 @@ This ledger is the single source of truth for the diagrams. If you can't add a n
 
 > ⚠️ **Trace request *and* response paths — don't assume push events bypass the request router.** A common failure mode: you see a message-type enum (e.g. `msg.h Event::Type { OrderAck, PositionUpdate, BalanceUpdate, ... }`) and conclude the push types must flow through a different channel than the request types. Often they don't — the same dispatcher / SPSC queue / router is reused for both directions, and only the type discriminator differs. Before drawing "A → B → C" with no return arrow, grep the consumer side: who calls `recv()` on B's response queue? Who calls `processResponse()` on each Executor? Pushes (UserDataStream, server-initiated events) frequently share the request dispatcher's plumbing because that's where vendor↔market routing already exists. Wiring this wrong produces sequence diagrams that omit the actual response path.
 
-### Phase 3 — Pick diagrams and matrices
+### Phase 3 — Pick sections (architecture and/or onboarding)
 
-**Section letters A–F are *positions*, not topics.** Each slot's title should come from what this system actually needs the reader to understand, not from a fixed template. Common building blocks:
+**Section letters A–E are *positions*, not topics.** Each slot's title should come from what this system actually needs the reader to understand, not from a fixed template. Common building blocks:
 
-- **Topology** (`flowchart LR`) — runtime units, external systems, buses/queues/DBs between them. Answers: "what processes exist and how do they talk."
-- **Interface / Modules** (`flowchart TB`) — internal layering, adapter/repository/client boundaries, prod-vs-sim implementations. Answers: "how is the code organized inside one unit."
-- **Sequence** (`sequenceDiagram`) — one representative flow: a typical request, startup, or rollout. Answers: "what happens over time on the happy path."
-- **Failure / Disconnect sequence** (`sequenceDiagram`) — what the system does when something breaks: reconnect, retry, fail-over, reconcile. Earn-its-place criterion: the system has a characteristic failure mode that the architecture explicitly handles (trading exchange disconnect, message broker rebalance, leader election).
-- **State / Truth matrix** (table) — for each kind of state (orders, sessions, cache lines, leader epoch), who is authoritative, what's cached locally, how it's recovered. Earn-its-place: the system has eventual-consistency boundaries the reader must internalize.
-- **Tradeoffs** (numbered list) — 3-5 architectural decisions, each with the rejected alternative.
+- **Overview / Topology** (`flowchart LR`) — runtime units, external systems, buses/queues/DBs between them. Answers: "what processes exist and how do they talk."
+- **Getting Started / Onboarding** (numbered steps + `pre.code` snippet + callback/API inventory matrix + config sample) — what a new contributor must do to actually run/use the system. Earn-its-place criterion: the system is something *people write code against* (framework, SDK, application platform), as opposed to a black-box service. The code sample should match the actual public API; the config sample should match actual schema; the callback table should enumerate real virtual methods / event listeners. **This is the section most likely to silently rot — always grep current code, never copy stale docs.**
+- **Interface / Modules** (`flowchart TB`) — internal layering, adapter/repository/client boundaries, prod-vs-sim implementations. Answers: "how is the code organized inside one unit." Use when there's a single subsystem that's the real story; skip if the system is naturally flat or if Getting Started already covers the API surface.
+- **Sequence** (`sequenceDiagram`) — one or more representative flows: a typical request, startup, rollout. Multiple sequence diagrams in one section are fine (e.g. C1 下单, C2 行情订阅) when they're complementary.
+- **Failure / Disconnect sequence** (`sequenceDiagram`) — what the system does when something breaks: reconnect, retry, fail-over, reconcile. Earn-its-place: system has a characteristic failure mode the architecture explicitly handles (trading exchange disconnect, broker rebalance, leader election).
+- **State / Truth matrix** (table) — for each kind of state, who is authoritative, what's cached locally, how it's recovered. Earn-its-place: eventual-consistency boundaries the reader must internalize.
+- **Boundary / Tradeoffs** (numbered list) — 3-5 architectural decisions, each with the rejected alternative. For frameworks/libraries, naturally frames as "框架负责 X / 策略(or 用户)负责 Y" responsibility split combined with rejected alternatives — `BOUNDARY` and `TRADEOFFS` can collapse into one section.
 
-**Pick the combination that matches the system.** Three common patterns:
+**Pick the combination that matches the system.** Common patterns:
 
-| System type | Typical A–F |
+| System type | Typical A–E |
 |---|---|
-| Real-time / trading / IoT | A topology · B interface · C happy sequence · D state truth · E disconnect sequence · F tradeoffs |
-| Web API / CRUD service | A topology · B interface · C request sequence · D SLA/ownership matrix · E tradeoffs (drop one diagram if simple) |
-| Library / SDK | A module layering · B public API surface matrix · C tradeoffs (no live topology, no sequence) |
+| Framework / SDK that people write code against | A overview · **B getting-started** · C sequence (often 2 diagrams) · D state · E boundary (责任分工 + tradeoffs) |
+| Real-time / trading / IoT service | A topology · B interface · C happy sequence · D state truth · E disconnect sequence (+ optional F tradeoffs) |
+| Web API / CRUD service | A topology · B interface · C request sequence · D SLA/ownership matrix · E tradeoffs |
+| Library / pure SDK | A module layering · B getting-started · C tradeoffs (skip live topology) |
+
+**Onboarding section quality bar.** If you choose to include `B · GETTING STARTED`:
+
+1. Find the minimum-viable usage in the codebase — grep `examples/`, `tests/integration/`, the first user-facing tutorial in README. Adapt one of those into 20–40 lines of well-commented "from zero to first action" code. **Don't invent imaginary types.**
+2. The callback / API inventory matrix must enumerate real symbols — grep the public header / class definition. Group by source (input event, output type, lifecycle).
+3. The config example must match the actual schema — open one real config file and copy the structure. Mask secrets with placeholders.
+4. Three numbered steps (`.steps` CSS) tell the reader the *order* of integration: usually "derive from base / configure / run".
 
 Aim for **6–14 nodes per diagram**. If you have more, split or aggregate. If you have fewer, you're probably not yet looking hard enough — or this isn't a diagram, it's a sentence.
 
