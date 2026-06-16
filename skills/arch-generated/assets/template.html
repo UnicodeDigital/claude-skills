@@ -7,7 +7,7 @@
   Inherit:  the <style> block, <script> (Mermaid theme + init), CSS classes
             (`.block`, `.diagram`, `.notes`, `.matrix`, `.tradeoffs`,
             `.steps`, `pre.code`, `.tag.good` for green variant, etc.),
-            and the OVERALL SECTION FLOW (masthead / lede / blocks A-E /
+            and the OVERALL SECTION FLOW (masthead / lede / blocks A-F /
             footer).
 
   REPLACE EVERYTHING ELSE.  The example content below is a real architecture
@@ -17,14 +17,21 @@
   diagrams, code samples, configs, matrix rows, and tradeoffs with content
   driven by THAT repo's evidence ledger.
 
-  Section letters A-E are POSITIONS, not topics. The common pattern for
-  living systems is:
-    A · OVERVIEW       (topology)
-    B · GETTING STARTED (onboarding: min-viable code + config + callback table)
-    C · SEQUENCE       (happy paths, multiple diagrams OK)
-    D · STATE          (truth source + cache + recovery matrix)
-    E · BOUNDARY       (责任分工 + tradeoffs combined)
-  But pick what THIS system needs — see SKILL.md Phase 3.
+  Section letters A-F are POSITIONS, not topics. The default pattern for
+  frameworks / SDKs that people write code against is architecture-first,
+  onboarding-last:
+    A · OVERVIEW         (topology, flowchart LR)
+    B · INTERFACE        (abstraction boundary that lets new vendors / plugins
+                         drop in with single-point changes; flowchart TB)
+    C · SEQUENCE         (happy paths, often 2 diagrams — request + data sub)
+    D · STATE            (truth source + cache + recovery matrix)
+    E · BOUNDARY         (责任分工 + tradeoffs combined)
+    F · GETTING STARTED  (min-viable code + config + callback table)
+                         — usually green `tag.good`, placed last as the
+                         "now you can use it" payoff after the architecture
+                         walkthrough.
+  Other system types (web service / library / pipeline) shift this combo
+  — see SKILL.md Phase 3.
   ============================================================================
 -->
 <html lang="zh">
@@ -198,134 +205,55 @@ flowchart LR
     <ul class="notes">
       <li><b>L1 · STRATEGY</b>:策略层。继承 <code>StrategyBase</code>、override 回调、调发单/订阅接口;L2–L5 都在回调背后。</li>
       <li><b>L2 · 行情源</b>:实盘走 <code>MD::Agent</code>;回测时 <code>MdLoader</code> 取代 <code>MD::Agent</code>(读 Arrow/Zstd 历史数据),策略回调代码不变;Kafka/Redis 视策略需求开关。</li>
-      <li><b>L3 · OMS</b>:订单/持仓/余额。按 <code>vendor + market</code> 各一个 <code>OrderManager</code>;每个交易所一个 <code>Executor</code> 子类,把"下单/撤单/查询"翻译成该所协议,协议/签名/限频差异全封在 Executor 内、策略无感。</li>
+      <li><b>L3 · OMS</b>:订单/持仓/余额。按 <code>vendor + market</code> 各一个 <code>OrderManager</code>;每个交易所一个 <code>Executor</code> 子类,把"下单/撤单/查询"翻译成该所协议,协议/签名/限频差异全封在 Executor 内、策略无感(见 B)。</li>
       <li><b>L4 · 协议/网络</b>:<code>Exchange::Agent</code> 负责多 vendor 的编解码,<code>SessionBundle</code> 是自实现的网络栈(TCP/TLS/HTTP/HTTP2/WS,底层 mbedtls + nghttp2)。</li>
       <li><b>L5 · 交易所/历史数据</b>:实盘连 10+ 交易所;回测读 Arrow/Zstd 历史数据。断线/重连由 <code>SessionBundle</code> 兜底(见 D)。</li>
     </ul>
   </section>
 
-  <!-- ============================ B · GETTING STARTED ============================ -->
+  <!-- ============================ B · INTERFACE ============================ -->
   <section class="block">
     <div class="block-head">
-      <span class="tag good">B · GETTING STARTED</span>
-      <span class="sub">onboarding</span>
+      <span class="tag">B · INTERFACE</span>
+      <span class="sub">flowchart TB</span>
     </div>
+    <div class="diagram">
+      <span class="corner">FIG. B</span>
+      <pre class="mermaid">
+flowchart TB
+  classDef base fill:#111,stroke:#111,color:#fff,stroke-width:2px;
+  classDef tool fill:#fff,stroke:#111,color:#111;
+  classDef opt fill:#fff,stroke:#444,stroke-dasharray:5 4,color:#111;
 
-    <ol class="steps">
-      <li><b>继承 <code>StrategyBase</code></b>,override 关心的回调(行情 / 订单 / 账户)。</li>
-      <li><b><code>init("config/strategy.cfg")</code></b> 读 venue + 模块配置,<b><code>subscribeMd(...)</code></b> 订阅行情。</li>
-      <li><b><code>run()</code></b> 进事件循环——之后所有回调在主线程被触发,在回调里 <code>getOrderManager(...).sendOrder(...)</code>。</li>
-    </ol>
+  STG["策略<br/>sendOrder / cancelOrder / query*"]:::tool
+  OM["<b>OrderManager</b> · vendor 无关<br/>本地缓存 · 回调分发"]:::base
+  OD["<b>OrderDispatcher</b> · vendor 无关<br/>按 vendor+market 路由 · SPSC · 内存池"]:::tool
+  EB["<b>Executor</b>(抽象基类)<br/>processRequest / processResponse"]:::base
 
-    <pre class="code">#include "strat/strategy_base.h"
-#include "oms/order_manager.h"
-using namespace strat;
+  subgraph IMPL["per-vendor 实现 · 每所一个子类"]
+    direction LR
+    BIN["BinanceSpot / Umfuture"]:::tool
+    OKX["OkxSpot / Umfuture"]:::tool
+    OTH["Bybit · Gate · Bitget · Kucoin<br/>MEXC · Hyperliquid · Aster · Lighter · IBKR"]:::tool
+  end
 
-class MyStrategy : public StrategyBase {
-  <span class="cmt">// —— 行情回调:订阅了对应 topic 才会来 ——</span>
-  void onBookTicker(const MD::BookTicker&amp; bt) override { <span class="cmt">/* BBO 更新 → 决策 */</span> }
-  void onTrade(const MD::Trade&amp; t) override {}
+  EA["<b>Exchange::Agent</b><br/>WS / HTTP / WS-API"]:::base
 
-  <span class="cmt">// —— 订单回调 ——</span>
-  void onOrderAcked (const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
-  void onOrderFilled(const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
-  void onOrderRejected(const ResponseHeader&amp; h, const ErrorMsg&amp; e) override {}
-
-  <span class="cmt">// —— 账户回调 ——</span>
-  void onBalanceUpdate(BalanceUpdate* r) override {}
-
-  <span class="cmt">// —— 下单:在任意回调里调 ——</span>
-  void place(const Symbol&amp; sym, Side side, Price px, Quantity qty) {
-    RequestHeader h{};
-    h.vendor = Exchange::Vendor::BINANCE;        <span class="cmt">// 选哪个所</span>
-    h.market = Exchange::Market::LINEAR;         <span class="cmt">// 现货 SPOT / U 本位 LINEAR ...</span>
-    h.account_type = AccountType::CROSSMARGIN;
-    string_to_char_array("my_account", h.account_id);
-
-    NewOrder o{};
-    string_to_char_array(sym, o.symbol);         <span class="cmt">// "btc-usdt"</span>
-    o.price = px; o.qty = qty; o.side = side;
-    o.type = OrderType::LIMIT; o.tif = OrderTif::GTC;
-    <span class="cmt">// client_order_id 不赋值:OMS 启动后自动分配自增 cid;</span>
-    <span class="cmt">// 仅当需要自定义编号布局时,才显式 o.client_order_id = ...;</span>
-
-    getOrderManager(h.vendor, h.market).sendOrder(&amp;h, &amp;o);
-    <span class="cmt">// 结果异步回到 onOrderAcked / onOrderRejected</span>
-  }
-};
-
-int main() {
-  MyStrategy s;
-  s.init("config/strategy.cfg");                 <span class="cmt">// venue + 模块</span>
-  s.subscribeMd(Exchange::Vendor::BINANCE, Exchange::Market::LINEAR,
-                MD::TopicType::BookTicker, "btc-usdt");
-  s.run();                                       <span class="cmt">// 事件循环 · 回调在主线程触发</span>
-}</pre>
-
-    <ul class="notes" style="margin-bottom:18px">
-      <li><b>发单/撤单/查询</b>:<code>getOrderManager(vendor, market)</code> 拿到对应 <code>OrderManager</code>,再调 <code>sendOrder(&amp;header, &amp;order)</code> / <code>cancelOrder(client_order_id)</code> / <code>queryOpenOrders</code> / <code>queryBalance</code> / <code>queryPosition</code>。本地还可 <code>findOrder</code> / <code>getOpenOrders</code> / <code>hasInFlightOrder</code> 查缓存。</li>
-      <li><b>订阅行情</b>:<code>subscribeMd(vendor, market, MD::TopicType, symbol, settings)</code>。<code>TopicType</code>:<code>Trade · Orderbook · PartialOrderbook · MarkPrice · BookTicker · AggTrade · Kline</code>。订阅了哪个 topic,对应 <code>onXxx</code> 才会被回调。</li>
-      <li><b>定时器</b>:<code>setTimer(interval_s, handler, is_periodic, run_immediately)</code> 注册周期/单次回调(轮询、对账、撤超时单常用)。</li>
-      <li>完整的发单/撤单/查询用法参考 <code>src/examples/oms_test.cpp</code>。</li>
-    </ul>
-
-    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:16px 0 8px">▼ 可 override 的回调(按来源分组)</p>
-    <table class="matrix">
-      <thead>
-        <tr><th style="width:18%">来源</th><th style="width:46%">回调</th><th style="width:36%">何时触发</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="proc">行情 MD</td>
-          <td><code>onTrade</code> · <code>onOrderbook</code> · <code>onPartialOrderbook</code> · <code>onBookTicker</code> · <code>onMarkPrice</code> · <code>onKline</code></td>
-          <td>订阅的 topic 有新数据(<code>subscribeMd</code> 后)</td>
-        </tr>
-        <tr>
-          <td class="proc">订单 OrderListener</td>
-          <td><code>onOrderAcked</code> · <code>onOrderFilled</code> · <code>onOrderCanceled</code> · <code>onOrderExpired</code> · <code>onOrderRejected</code> · <code>onCancelRejected</code> · <code>onQueryOpenOrdersResp</code></td>
-          <td>下单/撤单的回报、成交推送、查单响应</td>
-        </tr>
-        <tr>
-          <td class="proc">账户 AccountListener</td>
-          <td><code>onBalanceUpdate</code> · <code>onPositionUpdate</code> · <code>onQueryBalanceResp</code> · <code>onQueryPositionResp</code> · <code>onQueryAccountInfoResp</code></td>
-          <td>余额/持仓推送、对应 query 的响应</td>
-        </tr>
-        <tr>
-          <td class="proc">连接状态</td>
-          <td><code>onDataStreamSubscribe</code> · <code>onSubscribeDisconnected</code></td>
-          <td>数据流订阅成功 / 断连(对账时机,见 D)</td>
-        </tr>
-        <tr>
-          <td class="proc">通用错误</td>
-          <td><code>onUnifiedErrorResp</code></td>
-          <td>各类请求的统一错误兜底</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:20px 0 8px">▼ strategy.cfg 一个 venue 块(敏感值用占位)</p>
-    <pre class="code">prod = {
-  venues = (
-    {
-      strategy_name = "my_strat";
-      vendor = 0;          <span class="cmt">// 0 BINANCE 1 BYBIT 2 GATE 3 HYPERLIQUID 4 OKX</span>
-                           <span class="cmt">// 5 ASTER 6 LIGHTER 7 BITGET 8 DEX 9 KUCOIN 10 MEXC 11 IBKR</span>
-      market = 1;          <span class="cmt">// 0 SPOT 1 LINEAR 2 INVERSE 3 OPTIONS ...</span>
-      accounts = (
-        {
-          account_type = 2;          <span class="cmt">// 1 SPOT 2 CROSSMARGIN 3 ISOLATEDMARGIN 4 UNIFIED</span>
-          account_id = "my_account";
-          api_key = "xxx";
-          api_secret = "yyy";
-          <span class="cmt">// OKX 另需 passphrase;DEX 类用 extras{ private_key=... }</span>
-        }
-      );
-    }
-  );
-  modules = { oms = { enabled = true; }; md = { enabled = true; }; };
-};</pre>
-    <ul class="notes" style="margin-top:8px">
-      <li><code>vendor</code> + <code>market</code> + <code>account_id</code> 三元组要和代码里 <code>RequestHeader</code> 对得上,否则 <code>getOrderManager</code> 找不到对应 venue。</li>
+  STG --> OM
+  OM ==> OD
+  OD ==> EB
+  EB -.- BIN
+  EB -.- OKX
+  EB -.- OTH
+  BIN ==> EA
+  OKX ==> EA
+  OTH ==> EA
+      </pre>
+    </div>
+    <ul class="notes">
+      <li><span class="accent">抽象边界放在 <code>Executor</code></span>:<code>OrderManager</code> / <code>OrderDispatcher</code> 完全不知道对接的是 Binance 还是 OKX——所有 vendor 差异(协议、签名、限频、字段映射)都压在各自的 <code>Executor</code> 子类里。这是 pandora 能用一套上层同时接 10+ 交易所的核心设计。</li>
+      <li><b>加一家新交易所只动一处</b>:实现一个 <code>&lt;vendor&gt;_&lt;market&gt;_executor</code> 子类(请求翻译 + 响应解析),在 <code>OrderDispatcher</code> 工厂注册 vendor case,其余各层零改动。IBKR 就是这么接进来的(见 <code>src/oms/docs/ibkr/</code>)。</li>
+      <li><b>请求与响应共用同一条双向路由</b>:<code>OrderDispatcher</code> 出向把请求按 vendor+market 路由到 <code>Executor</code>,入向把响应/推送路由回 <code>OrderManager</code>,靠 <code>ref_id → context</code> 关联把响应配回原请求(详见 C)。</li>
     </ul>
   </section>
 
@@ -457,8 +385,133 @@ sequenceDiagram
     </ol>
   </section>
 
+  <!-- ============================ F · GETTING STARTED ============================ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="tag good">F · GETTING STARTED</span>
+      <span class="sub">onboarding</span>
+    </div>
+
+    <ol class="steps">
+      <li><b>继承 <code>StrategyBase</code></b>,override 关心的回调(行情 / 订单 / 账户)。</li>
+      <li><b><code>init("config/strategy.cfg")</code></b> 读 venue + 模块配置,<b><code>subscribeMd(...)</code></b> 订阅行情。</li>
+      <li><b><code>run()</code></b> 进事件循环——之后所有回调在主线程被触发,在回调里 <code>getOrderManager(...).sendOrder(...)</code>。</li>
+    </ol>
+
+    <pre class="code">#include "strat/strategy_base.h"
+#include "oms/order_manager.h"
+using namespace strat;
+
+class MyStrategy : public StrategyBase {
+  <span class="cmt">// —— 行情回调:订阅了对应 topic 才会来 ——</span>
+  void onBookTicker(const MD::BookTicker&amp; bt) override { <span class="cmt">/* BBO 更新 → 决策 */</span> }
+  void onTrade(const MD::Trade&amp; t) override {}
+
+  <span class="cmt">// —— 订单回调 ——</span>
+  void onOrderAcked (const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
+  void onOrderFilled(const ResponseHeader&amp; h, const OrderUpdate&amp; o) override {}
+  void onOrderRejected(const ResponseHeader&amp; h, const ErrorMsg&amp; e) override {}
+
+  <span class="cmt">// —— 账户回调 ——</span>
+  void onBalanceUpdate(BalanceUpdate* r) override {}
+
+  <span class="cmt">// —— 下单:在任意回调里调 ——</span>
+  void place(const Symbol&amp; sym, Side side, Price px, Quantity qty) {
+    RequestHeader h{};
+    h.vendor = Exchange::Vendor::BINANCE;        <span class="cmt">// 选哪个所</span>
+    h.market = Exchange::Market::LINEAR;         <span class="cmt">// 现货 SPOT / U 本位 LINEAR ...</span>
+    h.account_type = AccountType::CROSSMARGIN;
+    string_to_char_array("my_account", h.account_id);
+
+    NewOrder o{};
+    string_to_char_array(sym, o.symbol);         <span class="cmt">// "btc-usdt"</span>
+    o.price = px; o.qty = qty; o.side = side;
+    o.type = OrderType::LIMIT; o.tif = OrderTif::GTC;
+    <span class="cmt">// client_order_id 不赋值:OMS 启动后自动分配自增 cid;</span>
+    <span class="cmt">// 仅当需要自定义编号布局时,才显式 o.client_order_id = ...;</span>
+
+    getOrderManager(h.vendor, h.market).sendOrder(&amp;h, &amp;o);
+    <span class="cmt">// 结果异步回到 onOrderAcked / onOrderRejected</span>
+  }
+};
+
+int main() {
+  MyStrategy s;
+  s.init("config/strategy.cfg");                 <span class="cmt">// venue + 模块</span>
+  s.subscribeMd(Exchange::Vendor::BINANCE, Exchange::Market::LINEAR,
+                MD::TopicType::BookTicker, "btc-usdt");
+  s.run();                                       <span class="cmt">// 事件循环 · 回调在主线程触发</span>
+}</pre>
+
+    <ul class="notes" style="margin-bottom:18px">
+      <li><b>发单/撤单/查询</b>:<code>getOrderManager(vendor, market)</code> 拿到对应 <code>OrderManager</code>,再调 <code>sendOrder(&amp;header, &amp;order)</code> / <code>cancelOrder(client_order_id)</code> / <code>queryOpenOrders</code> / <code>queryBalance</code> / <code>queryPosition</code>。本地还可 <code>findOrder</code> / <code>getOpenOrders</code> / <code>hasInFlightOrder</code> 查缓存。</li>
+      <li><b>订阅行情</b>:<code>subscribeMd(vendor, market, MD::TopicType, symbol, settings)</code>。<code>TopicType</code>:<code>Trade · Orderbook · PartialOrderbook · MarkPrice · BookTicker · AggTrade · Kline</code>。订阅了哪个 topic,对应 <code>onXxx</code> 才会被回调。</li>
+      <li><b>定时器</b>:<code>setTimer(interval_s, handler, is_periodic, run_immediately)</code> 注册周期/单次回调(轮询、对账、撤超时单常用)。</li>
+      <li>完整的发单/撤单/查询用法参考 <code>src/examples/oms_test.cpp</code>。</li>
+    </ul>
+
+    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:16px 0 8px">▼ 可 override 的回调(按来源分组)</p>
+    <table class="matrix">
+      <thead>
+        <tr><th style="width:18%">来源</th><th style="width:46%">回调</th><th style="width:36%">何时触发</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="proc">行情 MD</td>
+          <td><code>onTrade</code> · <code>onOrderbook</code> · <code>onPartialOrderbook</code> · <code>onBookTicker</code> · <code>onMarkPrice</code> · <code>onKline</code></td>
+          <td>订阅的 topic 有新数据(<code>subscribeMd</code> 后)</td>
+        </tr>
+        <tr>
+          <td class="proc">订单 OrderListener</td>
+          <td><code>onOrderAcked</code> · <code>onOrderFilled</code> · <code>onOrderCanceled</code> · <code>onOrderExpired</code> · <code>onOrderRejected</code> · <code>onCancelRejected</code> · <code>onQueryOpenOrdersResp</code></td>
+          <td>下单/撤单的回报、成交推送、查单响应</td>
+        </tr>
+        <tr>
+          <td class="proc">账户 AccountListener</td>
+          <td><code>onBalanceUpdate</code> · <code>onPositionUpdate</code> · <code>onQueryBalanceResp</code> · <code>onQueryPositionResp</code> · <code>onQueryAccountInfoResp</code></td>
+          <td>余额/持仓推送、对应 query 的响应</td>
+        </tr>
+        <tr>
+          <td class="proc">连接状态</td>
+          <td><code>onDataStreamSubscribe</code> · <code>onSubscribeDisconnected</code></td>
+          <td>数据流订阅成功 / 断连(对账时机,见 D)</td>
+        </tr>
+        <tr>
+          <td class="proc">通用错误</td>
+          <td><code>onUnifiedErrorResp</code></td>
+          <td>各类请求的统一错误兜底</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin:20px 0 8px">▼ strategy.cfg 一个 venue 块(敏感值用占位)</p>
+    <pre class="code">prod = {
+  venues = (
+    {
+      strategy_name = "my_strat";
+      vendor = 0;          <span class="cmt">// 0 BINANCE 1 BYBIT 2 GATE 3 HYPERLIQUID 4 OKX</span>
+                           <span class="cmt">// 5 ASTER 6 LIGHTER 7 BITGET 8 DEX 9 KUCOIN 10 MEXC 11 IBKR</span>
+      market = 1;          <span class="cmt">// 0 SPOT 1 LINEAR 2 INVERSE 3 OPTIONS ...</span>
+      accounts = (
+        {
+          account_type = 2;          <span class="cmt">// 1 SPOT 2 CROSSMARGIN 3 ISOLATEDMARGIN 4 UNIFIED</span>
+          account_id = "my_account";
+          api_key = "xxx";
+          api_secret = "yyy";
+          <span class="cmt">// OKX 另需 passphrase;DEX 类用 extras{ private_key=... }</span>
+        }
+      );
+    }
+  );
+  modules = { oms = { enabled = true; }; md = { enabled = true; }; };
+};</pre>
+    <ul class="notes" style="margin-top:8px">
+      <li><code>vendor</code> + <code>market</code> + <code>account_id</code> 三元组要和代码里 <code>RequestHeader</code> 对得上,否则 <code>getOrderManager</code> 找不到对应 venue。</li>
+    </ul>
+  </section>
+
   <footer>
-    <span>PANDORA · ARCH + ONBOARDING</span>
+    <span>PANDORA · 交易系统架构</span>
     <span>RENDERED FROM CODE · MERMAID</span>
   </footer>
 </div>

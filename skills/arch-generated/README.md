@@ -37,14 +37,15 @@ The skill triggers automatically when the request matches; you don't need to inv
 
 ## Output
 
-A single HTML file. Section letters A-E are **positions, not topics** — Claude picks subjects based on system type. The default pattern (for frameworks / SDKs people write code against):
+A single HTML file. Section letters A-F are **positions, not topics** — Claude picks subjects based on system type. The default pattern (for frameworks / SDKs people write code against, architecture-first → onboarding-last):
 
 - **Masthead + Lede** — title / metadata / one-paragraph central architectural move
 - **A · OVERVIEW** (flowchart LR) — runtime units, external systems, buses
-- **B · GETTING STARTED** — 3 numbered onboarding steps · `pre.code` minimum-viable code sample · callback/API inventory matrix · config example
+- **B · INTERFACE** (flowchart TB) — abstraction boundary that makes new vendors / plugins drop in with single-point changes
 - **C · SEQUENCE** (sequenceDiagram, often 2 diagrams) — happy-path request flow + data-subscription flow
 - **D · STATE** — truth source + cache + recovery matrix per state kind
 - **E · BOUNDARY** — 框架负责 / 用户负责 + tradeoffs combined
+- **F · GETTING STARTED** (green `tag.good`) — 3 numbered onboarding steps · `pre.code` minimum-viable code sample · callback/API inventory matrix · config example. Placed last as the "now you can use it" payoff.
 
 For non-framework systems (web services, libraries, real-time pipelines), the section mix shifts — see `SKILL.md` Phase 3.
 

@@ -66,12 +66,14 @@ This ledger is the single source of truth for the diagrams. If you can't add a n
 
 **Pick the combination that matches the system.** Common patterns:
 
-| System type | Typical A–E |
+| System type | Typical A–F |
 |---|---|
-| Framework / SDK that people write code against | A overview · **B getting-started** · C sequence (often 2 diagrams) · D state · E boundary (责任分工 + tradeoffs) |
+| Framework / SDK that people write code against (default) | A overview · B **interface** (extension/plugin boundary) · C sequence (often 2 diagrams) · D state · E boundary (责任分工 + tradeoffs) · **F getting-started** (green `tag.good`, placed last) |
 | Real-time / trading / IoT service | A topology · B interface · C happy sequence · D state truth · E disconnect sequence (+ optional F tradeoffs) |
 | Web API / CRUD service | A topology · B interface · C request sequence · D SLA/ownership matrix · E tradeoffs |
-| Library / pure SDK | A module layering · B getting-started · C tradeoffs (skip live topology) |
+| Library / pure SDK | A module layering · B public API surface · C getting-started · D tradeoffs (skip live topology) |
+
+**Ordering rationale (framework default).** GETTING STARTED goes *last*, not first — the reader has by then walked through topology, the interface that makes vendor/plugin extension possible, the request/response sequence, and the state model. The onboarding sample reads as "now you can use it" rather than a context-free recipe. Mark this section with the green `tag.good` CSS variant to visually flag it as the "go do this" payoff.
 
 **Onboarding section quality bar.** If you choose to include `B · GETTING STARTED`:
 
