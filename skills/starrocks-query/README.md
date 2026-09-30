@@ -2,8 +2,7 @@
 
 ## 1. 获取凭证
 
-- **Server URL**：`http://162.128.159.166:9130/mcp`
-- **你的个人 Token**：联系@杜壮壮获取
+- **Server URL** 和 **你的个人 Token**：联系@杜壮壮获取
 
 ---
 
@@ -12,7 +11,7 @@
 ### Claude Code（终端）
 
 ```bash
-claude mcp add --transport http starrocks http://162.128.159.166:9130/mcp --header "Authorization: Bearer <你的-token>"
+claude mcp add --transport http starrocks <Server-URL> --header "Authorization: Bearer <你的-token>"
 ```
 
 添加后 Claude Code 下次启动会自动连接。
