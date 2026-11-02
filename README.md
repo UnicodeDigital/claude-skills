@@ -10,6 +10,7 @@ UnicodeDigital team shared skills for [Claude Code](https://claude.ai/code).
 | [/starrocks-query](skills/starrocks-query/) | 自然语言查询公司 StarRocks 数据仓库（需配套 MCP Server）           |
 | [/starrocks-ops](skills/starrocks-ops/) | 用本地个人账号跑 StarRocks SQL（读写）需Python环境               |
 | [/arch-generated](skills/arch-generated/) | 读项目代码生成黑白线条风格的架构 + onboarding 文档（单文件 HTML + Mermaid + 代码示例 + 配置范例）  |
+| [/session-sync](skills/session-sync/) | 主会话与 fork 出来的子会话之间互相同步进展、决定与待办（需 Claude 桌面版） |
 
 ## Installation
 
